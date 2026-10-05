@@ -190,7 +190,10 @@
       if (it.type === '문서판') { if (m === 'read') h += `<div class="free">${md(it.lines)}</div>`; return; }
       if (it.type === 'free') { const t = it.lines.join('\n').trim(); if (t) h += `<div class="free">${md(it.lines)}</div>`; }
     });
-    if (unit.todo) h += `<div class="todo"><span class="todo-label">할 일</span><span>${mdInline(unit.todo)}</span></div>`;
+    if (unit.todo) {
+      const k = `todo:${unit.no}`;
+      h += `<div class="todo"><input type="checkbox" id="t-${esc(unit.no)}" data-k="${k}"${store.get(k) === '1' ? ' checked' : ''}><label for="t-${esc(unit.no)}"><span class="todo-label">할 일</span> ${mdInline(unit.todo)}</label></div>`;
+    }
     if (opts.next) h += `<p class="next"><a href="#s-${opts.next.no}">다음 <span>${esc(opts.next.no)}</span> ${esc(opts.next.title)} →</a></p>`;
     h += `</div>`;
     if (m === 'point') {
@@ -231,6 +234,7 @@
     $$('.sim-live').forEach((el) => window.GuideSim.contribution(el, DOC.params));
     if (mode() === 'point') markTerms();
     renderNav();
+    renderTodos();
     placeMargins();
     onScroll();
   }
@@ -269,6 +273,40 @@
     $('#nav').innerHTML = `<ol>${tree}</ol>`;
     $('#tocBody').innerHTML = `<ol>${tree}</ol>`;
   }
+
+  /* 할 일 모아 보기: 모든 절의 '할 일'을 한 목록으로. 체크 상태는 절 안의 카드와 같은 값을 쓴다 */
+  function renderTodos() {
+    const done = (k) => store.get(k) === '1';
+    let total = 0, checked = 0, h = '<p class="todo-intro">이 글에서 실제로 해야 할 일만 모았다. 누르면 해당 절로 간다. 체크는 이 브라우저에만 저장된다.</p>';
+    DOC.chapters.forEach((c) => {
+      const units = (c.sections.length ? c.sections : [c.self]).filter((u) => u.todo);
+      if (!units.length) return;
+      h += `<h3 class="todo-ch"><span class="no">${esc(c.no)}</span>${esc(c.title)}</h3><ol class="todo-list">`;
+      units.forEach((u) => {
+        const k = `todo:${u.no}`; total += 1; if (done(k)) checked += 1;
+        h += `<li><input type="checkbox" id="tp-${esc(u.no)}" data-k="${k}"${done(k) ? ' checked' : ''}><div><label for="tp-${esc(u.no)}">${mdInline(u.todo)}</label>
+          <a class="todo-go" href="#s-${u.no}" data-go="${u.no}">${esc(u.no)} ${esc(u.title)} →</a>`;
+        const cl = u.items.find((i) => i.type === '체크리스트');
+        if (cl) {
+          const items = cl.lines.filter((l) => /^\d+\.\s/.test(l)).map((l) => l.replace(/^\d+\.\s/, ''));
+          h += `<ol class="todo-sub">${items.map((t, i) => { const kk = `chk:${u.no}:${i}`; return `<li><input type="checkbox" id="tp-${esc(u.no)}-${i}" data-k="${kk}"${done(kk) ? ' checked' : ''}><label for="tp-${esc(u.no)}-${i}">${mdInline(t)}</label></li>`; }).join('')}</ol>`;
+        }
+        h += `</div></li>`;
+      });
+      h += `</ol>`;
+    });
+    $('#todoBody').innerHTML = h;
+    $('#todoCount').textContent = `${checked}/${total}`;
+    $('#todoOpen').setAttribute('aria-label', `할 일 ${total}개 중 ${checked}개 완료. 모아 보기`);
+  }
+  function syncCheck(k, on) {
+    store.set(k, on ? '1' : '0');
+    $$(`input[data-k="${k}"]`).forEach((x) => { x.checked = on; });
+    const all = $$('#todoBody input[data-k^="todo:"]');
+    $('#todoCount').textContent = `${all.filter((x) => x.checked).length}/${all.length}`;
+  }
+  function openTodo() { $('#todoPanel').hidden = false; $('#todoBackdrop').hidden = false; history.pushState({ todo: 1 }, ''); $('#todoClose').focus(); }
+  function closeTodo(fromPop) { if ($('#todoPanel').hidden) return; $('#todoPanel').hidden = true; $('#todoBackdrop').hidden = true; if (!fromPop) history.back(); }
 
   /* ---------------- 3. 여백 레인 배치 (넓은 화면) ---------------- */
   function placeMargins() {
@@ -413,12 +451,14 @@
         e.stopPropagation(); return;
       }
       if (!t.closest('#pop')) closePop();
-      const navA = t.closest('.toc-body a');
+      const go = t.closest('.todo-go');
+      if (go) { e.preventDefault(); closeTodo(); setTimeout(() => document.getElementById('s-' + go.dataset.go)?.scrollIntoView(), 30); return; }
+      const navA = t.closest('#tocBody a');
       if (navA) { closeToc(); }
     });
     document.addEventListener('change', (e) => {
-      const c = e.target.closest('.checklist input');
-      if (c) store.set(c.dataset.k, c.checked ? '1' : '0');
+      const c = e.target.closest('input[type="checkbox"][data-k]');
+      if (c) syncCheck(c.dataset.k, c.checked);
     });
     // 핵심 ↔ 근거 연결 강조 (넓은 화면)
     document.addEventListener('mouseover', (e) => {
@@ -433,15 +473,18 @@
       }
     });
     $('#tocOpen').addEventListener('click', () => { if (layout() !== 'wide') openToc(); });
-    $('#tocClose').addEventListener('click', closeToc);
+    $('#tocClose').addEventListener('click', () => closeToc());
+    $('#todoOpen').addEventListener('click', openTodo);
+    $('#todoClose').addEventListener('click', () => closeTodo());
+    $('#todoBackdrop').addEventListener('click', () => closeTodo());
     $('#sheetClose').addEventListener('click', () => closeSheet());
     $('#sheetBackdrop').addEventListener('click', () => closeSheet());
     $('#sheetPrev').addEventListener('click', () => { sheet.i = (sheet.i - 1 + sheet.list.length) % sheet.list.length; drawSheet(); });
     $('#sheetNext').addEventListener('click', () => { sheet.i = (sheet.i + 1) % sheet.list.length; drawSheet(); });
-    window.addEventListener('popstate', () => { if (sheet.open) closeSheet(true); if (!$('#toc').hidden) closeToc(true); });
+    window.addEventListener('popstate', () => { if (sheet.open) closeSheet(true); if (!$('#toc').hidden) closeToc(true); closeTodo(true); });
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
-      closePop(); if (sheet.open) closeSheet(); if (!$('#toc').hidden) closeToc();
+      closePop(); if (sheet.open) closeSheet(); if (!$('#toc').hidden) closeToc(); closeTodo();
     });
     // 시트 손잡이를 아래로 끌어 닫기
     let y0 = null;

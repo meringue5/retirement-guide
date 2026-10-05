@@ -17,6 +17,7 @@
     <span class="loc-title" id="locTitle">노후대비 가이드</span>
     <span class="loc-icon" aria-hidden="true">≡</span>
   </button>
+  <button class="todo-btn" id="todoOpen" aria-haspopup="dialog" aria-controls="todoPanel"><span class="tb-label">할 일</span> <span class="tb-count" id="todoCount"></span></button>
   <div class="mode" role="group" aria-label="보기 방식">
     <button data-mode="read" aria-pressed="false">정독</button>
     <button data-mode="point" aria-pressed="true">요점</button>
@@ -36,6 +37,12 @@
   <div class="toc-head"><strong>목차</strong><button class="toc-close" id="tocClose" aria-label="목차 닫기">닫기</button></div>
   <div class="toc-body" id="tocBody"></div>
 </div>
+
+<div class="panel-backdrop" id="todoBackdrop" hidden></div>
+<section class="panel" id="todoPanel" role="dialog" aria-modal="true" aria-labelledby="todoTitle" hidden>
+  <div class="toc-head"><strong id="todoTitle">할 일 모아 보기</strong><button class="toc-close" id="todoClose" aria-label="할 일 닫기">닫기</button></div>
+  <div class="toc-body" id="todoBody"></div>
+</section>
 
 <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
 <section class="sheet" id="sheet" role="dialog" aria-modal="false" aria-labelledby="sheetTitle" hidden>

@@ -84,8 +84,8 @@ for no, line in enumerate(lines, 1):
             warn(f'{no}행 [{unit["no"]}]: 자리표시 요약이 남아 있다 → "{line.strip()}"')
         continue
     if line.startswith('할 일:'):
-        if re.search(r'아래', line):
-            err(f'{no}행 [{unit["no"]}]: 할 일은 절 끝에 그려지므로 "아래"를 가리킬 수 없다 → "위"')
+        if re.search(r'(^|\s)(위|아래)(\s|의|에|로|$)', line[5:]):
+            err(f'{no}행 [{unit["no"]}]: 할 일에 "위/아래" 같은 위치 표현이 있다. 할 일은 "할 일 모아 보기"에도 따로 나오므로 이름으로 가리킬 것 (예: "납입 시뮬레이터")')
         continue
     if not line.strip() or line.strip() == '---':
         continue
