@@ -1,0 +1,76 @@
+/* ============================================================
+   디자인 토큰 — 두 모드(정독/요점)가 공유한다.
+   글꼴: 마루부리 Regular(400) + SemiBold(600)만 불러온다. (설계 6-6)
+   ============================================================ */
+@font-face {
+  font-family: 'MaruBuri';
+  src: url('https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-Regular.woff2') format('woff2'),
+       url('https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-Regular.woff') format('woff');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'MaruBuri';
+  src: url('https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-SemiBold.woff2') format('woff2'),
+       url('https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-SemiBold.woff') format('woff');
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+
+:root {
+  /* 색 — 밝은 화면 */
+  --paper: #f7f3ec;        /* 바탕 */
+  --paper-2: #efe9df;      /* 카드·시트 */
+  --ink-strong: #1d1915;   /* 핵심 */
+  --ink: #2e2923;          /* 본문·제목 */
+  --ink-muted: #625a50;    /* 세부 */
+  --ink-faint: #716859;    /* 여백 레인 제목(쉬는 상태) */
+  --rule: #ddd4c6;
+  --accent: #2c5873;       /* 핵심 번호, 할 일, 링크 */
+  --accent-soft: #e2eaee;
+  --chart-1: #2a78d6;      /* 그림: 흑자 / 주요 막대 */
+  --chart-2: #e34948;      /* 그림: 적자 */
+  --chart-neutral: #b9b2a6;
+  --shadow: 0 -8px 32px rgba(40, 30, 20, .14);
+
+  /* 글자 */
+  --font: 'MaruBuri', 'AppleMyungjo', 'Batang', 'Noto Serif KR', serif;
+  --fs-body: 18px;
+  --lh: 1.8;
+  --ls: -0.01em;           /* 자간: 시제품에서 0 / -0.01 / -0.02em 비교 */
+  --fs-h1: 1.9em;
+  --fs-h2: 1.42em;
+  --fs-summary: 1.1em;
+  --fs-detail: .89em;
+  --fs-ui: 15px;
+
+  /* 폭 — 레이아웃 전환 기준은 이 값들에서 계산한다 (설계 6-5) */
+  --measure-chars: 38;     /* 한 줄 한글 글자 수 */
+  --char-w: .86;           /* 마루부리 평균 글자 폭 (em, 공백 포함 평균) */
+  --nav-w: 232px;
+  --margin-w: 264px;
+  --gap: 44px;
+  --pad: 32px;
+  --topbar-h: 52px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #1b1916; --paper-2: #25221e;
+    --ink-strong: #f4efe7; --ink: #e4ddd1; --ink-muted: #b0a698; --ink-faint: #9a9083;
+    --rule: #3b362f; --accent: #93bcd8; --accent-soft: #23313a;
+    --chart-1: #5598e7; --chart-2: #e66767; --chart-neutral: #6b655c;
+    --shadow: 0 -8px 32px rgba(0, 0, 0, .5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #1b1916; --paper-2: #25221e;
+  --ink-strong: #f4efe7; --ink: #e4ddd1; --ink-muted: #b0a698; --ink-faint: #9a9083;
+  --rule: #3b362f; --accent: #93bcd8; --accent-soft: #23313a;
+  --chart-1: #5598e7; --chart-2: #e66767; --chart-neutral: #6b655c;
+  --shadow: 0 -8px 32px rgba(0, 0, 0, .5);
+  color-scheme: dark;
+}
+
+@media (max-width: 600px) {
+  :root { --fs-body: 17px; --pad: 20px; --fs-h1: 1.65em; --fs-h2: 1.3em; }
+}
