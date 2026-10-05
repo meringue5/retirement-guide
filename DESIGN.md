@@ -40,6 +40,7 @@ version: v2 (모바일·글꼴 반영)
 | 2026-10-05 | 설계 문서를 루트 `DESIGN.md`로 승격(설계 정본). `docs/` 폴더 없음 |
 | 2026-10-05 | 저장소 구조: 프로젝트 폴더 = 저장소 루트. `index.html`은 루트(GitHub Pages가 루트를 게시), ~~설계·이력 문서는 `docs/`~~ (→ 루트 `DESIGN.md`), 작업 지침은 `CLAUDE.md` |
 | 2026-10-05 | 원본 문법 추가: `::: 전제`(문서 첫머리 공지), `::: 메모`(작성자용, 화면에 안 나옴) |
+| 2026-10-05 | GitHub Pages 게시(https://meringue5.github.io/retirement-guide/). Jekyll 변환을 끄는 `.nojekyll` 추가 |
 | 2026-10-05 | 자간 기본값 −0.01em (시제품 비교 결과 세 값의 차이가 작아 중간값). 여백 레인 흐린 글자색은 대비 4.5:1 이상으로 조정 |
 
 ---
@@ -57,6 +58,7 @@ version: v2 (모바일·글꼴 반영)
 │   ├─ sim.js            ← 시뮬레이터·그림 (부록 C 파라미터를 읽음)
 │   └─ vendor/           ← markdown 파서 등 외부 라이브러리를 저장소에 포함 (글꼴만 네이버 CDN 예외 → 6-6)
 ├─ scripts/lint.py       ← 출판 전 점검 자동화 (8장)
+├─ .nojekyll             ← 빈 파일. Pages의 Jekyll 변환을 끈다 (없으면 guide.md가 404)
 ├─ README.md
 ├─ DESIGN.md             ← 이 문서 (설계 정본)
 └─ CLAUDE.md             ← 작업 지침

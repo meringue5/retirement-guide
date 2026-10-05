@@ -2,7 +2,7 @@
 
 직장인을 위한 노후대비 가이드. 연금저축, IRP, 퇴직연금(DC), ISA로 세금 혜택을 받으며 노후 자금을 모으고, 굴리고, 꺼내 쓰는 방법을 정리했다.
 
-- 사이트: `https://<계정>.github.io/<저장소>/` (게시 후 채울 것)
+- 사이트: https://meringue5.github.io/retirement-guide/
 - 기준일: 2026-10-05 (세법·제도)
 
 ## 누구를 위한 글인가
@@ -50,6 +50,8 @@ python3 -m http.server 8000
 ## 게시 (GitHub Pages)
 
 저장소 Settings → Pages → Build and deployment → Source: *Deploy from a branch*, Branch: `main` / `/ (root)`.
+
+루트의 빈 파일 `.nojekyll`을 지우지 않는다. 이 파일이 없으면 GitHub Pages가 Jekyll로 `.md` 파일을 HTML로 바꿔 버려서, 페이지가 `content/guide.md`를 읽지 못한다.
 
 ## 사용한 것
 

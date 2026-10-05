@@ -72,4 +72,6 @@
 
 ## 배포
 
-`main`에 push하면 GitHub Pages(루트 게시)로 반영된다.
+`main`에 push하면 GitHub Pages(루트 게시)로 반영된다. 사이트: https://meringue5.github.io/retirement-guide/
+
+- 루트의 빈 파일 `.nojekyll`을 지우지 않는다. 없으면 Pages가 Jekyll로 `content/guide.md`를 HTML로 변환해서 원본 md가 404가 되고, 페이지가 내용을 못 읽는다.
