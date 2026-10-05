@@ -115,24 +115,33 @@
     return out;
   }
 
+  // 그림: 블록 내용(설명, '키: 값' 줄, 표)을 모아 두었다가 화면에 붙인 뒤 실제 폭으로 그린다
+  const FIGS = [];
   function renderFig(item) {
     const id = item.title;
-    let caption = '', assume = '';
-    const rest = [];
-    item.lines.forEach((l) => {
-      if (/^설명:/.test(l)) caption = l.replace(/^설명:\s*/, '').replace(/\s*미리보기:.*$/, '');
-      else if (/^가정:/.test(l)) assume = l.replace(/^가정:\s*/, '');
-      else rest.push(l);
-    });
-    const tableLines = rest.filter((l) => /^\|/.test(l));
-    const notes = rest.filter((l) => /^- /.test(l));
-    const rows = tableLines.filter((l) => !/^\|\s*-/.test(l)).slice(1).map((l) => l.split('|').slice(1, -1).map((x) => x.trim()));
     const chart = window.GuideSim.charts[id];
-    if (chart) {
-      return `<figure class="fig">${chart(rows)}<figcaption>${esc(caption)}${assume ? `<br><span>가정: ${esc(assume)}</span>` : ''}${notes.length ? md(notes) : ''}</figcaption></figure>`;
-    }
-    const table = mode() === 'read' && tableLines.length ? md(tableLines) : '';
-    return `<figure class="fig"><div class="fig-pending">그림 자리 — ${esc(caption)}</div>${table}</figure>`;
+    if (!chart) return '';                          // 아직 그리지 않은 그림은 공개 화면에 자리표시를 내지 않는다
+    let caption = '';
+    const kvAll = [], tableLines = [], notes = [];
+    item.lines.forEach((l) => {
+      let m;
+      if (/^\|/.test(l)) tableLines.push(l);
+      else if (/^- /.test(l)) notes.push(l);
+      else if ((m = l.match(/^([^:|]{1,12}):\s*(.*)$/))) { if (m[1] === '설명') caption = m[2]; else kvAll.push([m[1].trim(), m[2].trim()]); }
+    });
+    const tbl = tableLines.filter((l) => !/^\|\s*-/.test(l)).map((l) => l.split('|').slice(1, -1).map((x) => x.trim()));
+    const ctx = { header: tbl[0] || [], rows: tbl.slice(1), kv: Object.fromEntries(kvAll), kvAll };
+    const k = FIGS.push({ id, ctx }) - 1;
+    const assume = ctx.kv['가정'];
+    return `<figure class="fig" data-fig="${k}"><div class="chart"></div><figcaption>${mdInline(caption)}${assume ? `<br>가정: ${mdInline(assume)}` : ''}${mode() === 'read' && notes.length ? md(notes) : ''}</figcaption></figure>`;
+  }
+  function mountFigs() {
+    $$('figure[data-fig]').forEach((f) => {
+      const { id, ctx } = FIGS[+f.dataset.fig];
+      const el = $('.chart', f);
+      const live = mode() === 'point' && window.GuideSim.live[id];
+      try { window.GuideSim.charts[id](el, ctx, DOC.params, live); } catch (e) { el.innerHTML = ''; console.error(id, e); }
+    });
   }
 
   function renderSim(item) {
@@ -193,6 +202,7 @@
   }
 
   function render() {
+    FIGS.length = 0;
     const units = allUnits();
     const nextOf = (u) => units[units.indexOf(u) + 1];
     let h = `<header class="doc-head"><h1 class="doc-title">노후대비 가이드</h1>`;
@@ -216,6 +226,7 @@
         `<li id="fn-${k}">${mdi.renderInline(DOC.footnotes[k])} <a href="#fnref-${k}" aria-label="본문으로">↩</a></li>`).join('')}</ol></section>`;
     }
     $('#doc').innerHTML = h;
+    mountFigs();
     $$('#doc a[href^="http"]').forEach((a) => { a.target = '_blank'; a.rel = 'noopener'; });
     $$('.sim-live').forEach((el) => window.GuideSim.contribution(el, DOC.params));
     if (mode() === 'point') markTerms();
@@ -284,12 +295,18 @@
   function onScroll() {
     const secs = $$('.sec');
     const y = ($('#topbar').offsetHeight || 52) + innerHeight * 0.3;   // 화면 위쪽 1/3 지점을 지나간 절이 '현재'
-    let cur = secs[0];
+    let cur = null;                                   // 첫 절에 들어가기 전(문서 머리)에는 현재 절 없음
     for (const s of secs) { if (s.getBoundingClientRect().top <= y) cur = s; else break; }
     const max = document.documentElement.scrollHeight - innerHeight;
     $('#progress').style.width = (max > 0 ? Math.min(100, (scrollY / max) * 100) : 0) + '%';
-    if (!cur || cur === current) return;
+    updateSticky();
+    if (cur === current) return;
     current = cur;
+    if (!cur) {
+      $('#locNo').textContent = ''; $('#locTitle').textContent = '노후대비 가이드';
+      $$('.nav a, .toc-body a').forEach((a) => a.setAttribute('aria-current', 'false'));
+      updateSticky(); return;
+    }
     const no = cur.dataset.no;
     $('#locNo').textContent = layout() === 'wide' ? '' : no;
     $('#locTitle').textContent = layout() === 'wide' ? '노후대비 가이드' : cur.dataset.title;
@@ -297,6 +314,18 @@
     $('.ss-no', ss).textContent = no;
     $('.ss-text', ss).textContent = cur.dataset.summary || cur.dataset.title;
     $$('.nav a, .toc-body a').forEach((a) => a.setAttribute('aria-current', String(a.dataset.no === no)));
+    updateSticky();
+  }
+
+  /* 고정 요약 바: 현재 절의 요약이 화면 위로 지나간 뒤에만 보인다 (같은 문장이 두 번 보이지 않게) */
+  function updateSticky() {
+    const ss = $('#stickySum');
+    let show = false;
+    if (current) {
+      const anchor = $('.summary', current) || $('.sec-head', current);
+      show = !!anchor && anchor.getBoundingClientRect().bottom < ($('#topbar').offsetHeight || 52);
+    }
+    ss.classList.toggle('is-empty', !show);
   }
 
   /* ---------------- 5. 하단 시트 · 팝오버 ---------------- */
@@ -422,9 +451,20 @@
     grip.addEventListener('pointerup', (e) => { const d = e.clientY - y0; y0 = null; if (d > 80) closeSheet(); else $('#sheet').style.transform = ''; });
     let raf = 0;
     window.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; onScroll(); }); }, { passive: true });
-    window.addEventListener('resize', () => { const before = layout(); computeLayout(); if (layout() !== before) { const at = current && current.id; render(); if (at) document.getElementById(at)?.scrollIntoView(); } else placeMargins(); });
+    window.addEventListener('resize', () => { const before = layout(); computeLayout(); if (layout() !== before) { const at = current && current.id; render(); if (at) document.getElementById(at)?.scrollIntoView(); } else { redrawFigs(); placeMargins(); } });
     window.addEventListener('beforeprint', () => { if (mode() === 'point') { root.dataset.printSwap = '1'; root.dataset.mode = 'read'; render(); } });
     window.addEventListener('afterprint', () => { if (root.dataset.printSwap) { delete root.dataset.printSwap; root.dataset.mode = 'point'; render(); } });
+  }
+
+  // 폭이 바뀌면 그림만 다시 그린다 (조작 중인 값은 유지)
+  let lastW = 0;
+  function redrawFigs() {
+    const w = $('#doc').clientWidth; if (Math.abs(w - lastW) < 8) return; lastW = w;
+    $$('figure[data-fig]').forEach((f) => {
+      const { id, ctx } = FIGS[+f.dataset.fig]; const el = $('.chart', f);
+      if (window.GuideSim.live[id] && mode() === 'point') { const st = el._st; window.GuideSim.charts[id](el, ctx, DOC.params, true); if (st) el._st = st; }
+      else window.GuideSim.charts[id](el, ctx, DOC.params, false);
+    });
   }
 
   function openToc() { $('#toc').hidden = false; history.pushState({ toc: 1 }, ''); $('#tocClose').focus(); const cur = $('.toc-body a[aria-current="true"]'); if (cur) cur.scrollIntoView({ block: 'center' }); }
@@ -460,7 +500,8 @@
     DOC = parse(src);
     bind();
     render();
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeMargins);
+    // 글꼴이 늦게 도착하면 배치가 바뀌므로 위치 추적과 여백 레인을 다시 계산한다
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeMargins(); current = undefined; onScroll(); });
     if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
   }
   init().catch((e) => { $('#doc').innerHTML = `<p>내용을 불러오지 못했다: ${esc(e.message)}</p>`; console.error(e); });

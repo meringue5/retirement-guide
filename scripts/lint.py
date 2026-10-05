@@ -4,6 +4,7 @@
 사용법: python3 scripts/lint.py [content/guide.md]
 오류가 있으면 종료 코드 1. 경고는 출력만 한다.
 """
+import difflib
 import re
 import sys
 from pathlib import Path
@@ -78,10 +79,15 @@ for no, line in enumerate(lines, 1):
         continue
     if line.startswith('요약:'):
         unit['summary'] = True
+        unit['summary_text'] = line[3:].strip()
         if '작성 예정' in line or '추가 예정' in line:
             warn(f'{no}행 [{unit["no"]}]: 자리표시 요약이 남아 있다 → "{line.strip()}"')
         continue
-    if line.startswith('할 일:') or not line.strip() or line.strip() == '---':
+    if line.startswith('할 일:'):
+        if re.search(r'아래', line):
+            err(f'{no}행 [{unit["no"]}]: 할 일은 절 끝에 그려지므로 "아래"를 가리킬 수 없다 → "위"')
+        continue
+    if not line.strip() or line.strip() == '---':
         continue
     unit['free'].append((no, line))
 
@@ -111,6 +117,11 @@ for u in units:
         n_core = len([l for l in cores[0]['lines'] if re.match(r'^\d+\.\s', l)])
         if n_core > 3:
             err(f'{label} 핵심 항목이 {n_core}개다 (최대 3개)')
+    if cores and u.get('summary_text'):           # 요약이 핵심을 그대로 되풀이하면 경고
+        items = [re.sub(r'^\d+\.\s*', '', l).replace('**', '') for l in cores[0]['lines'] if re.match(r'^\d+\.\s', l)]
+        for sent in re.split(r'(?<=[.다])\s+', u['summary_text'].replace('**', '')):
+            if sent and items and max(difflib.SequenceMatcher(None, sent, it).ratio() for it in items) > 0.85:
+                warn(f'{label} 요약 문장이 핵심과 거의 같다 → "{sent[:30]}…"')
     for b in u['blocks']:
         if b['type'] == '세부':
             if not b['title']:
